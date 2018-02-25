@@ -1,0 +1,5 @@
+.env
+cs231n/__pycache__
+cs231n/classifiers/__pycache__
+*.so
+.ipynb_checkpoints
