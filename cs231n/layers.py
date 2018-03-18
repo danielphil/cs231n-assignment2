@@ -25,7 +25,13 @@ def affine_forward(x, w, b):
     # TODO: Implement the affine forward pass. Store the result in out. You   #
     # will need to reshape the input into rows.                               #
     ###########################################################################
-    pass
+
+    D = np.prod(x.shape[1:])
+    assert(D == w.shape[0])
+    X_reshape = np.reshape(x, (x.shape[0], D))
+
+    out = np.dot(X_reshape, w) + b
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
