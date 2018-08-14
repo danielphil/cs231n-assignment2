@@ -62,11 +62,16 @@ def sandbox_model(X,y,is_training, filter_size=2):
     
     # affine layer 2 with 10 outputs  
     y_out = tf.layers.dense(h2, 10, activation=None)
-    
-    print("I finished!")
+
     return y_out
 
 pipeline = tf_pipeline.TfPipeline(sandbox_model)
+for epoch in range(10):
+    print("Training Epoch {0}:".format(epoch + 1), end='')
+    pipeline.train_epoch(X_train, y_train)
+
+    print("Validating Epoch {0}:".format(epoch + 1), end='')
+    pipeline.validate(X_val, y_val)
 
 #with tf_pipeline.TfPipeline(sandbox_model) as pipeline:
 #    pipeline.run(X_train, y_train, X_val, y_val)
