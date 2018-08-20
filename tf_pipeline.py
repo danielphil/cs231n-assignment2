@@ -1,6 +1,31 @@
 import tensorflow as tf
 import numpy as np
 import math
+import matplotlib.pyplot as plt
+import random
+import json
+
+def random_search_params(options, limit = 1000):
+    max_limit = 1
+    for key in options:
+        max_limit *= len(options[key])
+
+    limit = min(max_limit, limit)
+    
+    previous_hashes = set()
+    while len(previous_hashes) < limit:
+        output_options = {}
+        for key in options:
+            index = random.randrange(len(options[key]))
+            output_options[key] = options[key][index]
+        
+        # Don't generate duplicates
+        options_hash = hash(json.dumps(output_options, sort_keys=True))
+        if options_hash in previous_hashes:
+            continue
+        previous_hashes.add(options_hash)
+
+        yield output_options
 
 def minibatch_indices(N, batch_size):
     batches = int(math.ceil(N/batch_size))
@@ -11,6 +36,45 @@ def minibatch_indices(N, batch_size):
     for current_batch in range(batches):
         start_index = current_batch * batch_size
         yield indices[start_index:start_index+batch_size]
+
+def train_and_plot(sandbox_model, X_train, y_train, X_val, y_val, epochs=20):
+    with TfPipeline(sandbox_model) as pipeline:
+        last_accuracy = 0
+        train_accuracies = []
+        val_accuracies = []
+
+        for epoch in range(epochs):
+            print('.', end='')
+            #print("Training Epoch {0}:".format(epoch + 1), end='')
+            train_loss, train_accuracy = pipeline.train_epoch(X_train, y_train)
+            #print("Overall loss = {0:.3g} and accuracy of {1:.3g}".format(train_loss,train_accuracy))
+            train_accuracies.append(train_accuracy)
+
+            #print("Validating Epoch {0}:".format(epoch + 1), end='')
+            val_loss, val_accuracy = pipeline.validate(X_val, y_val)
+            #print("Overall loss = {0:.3g} and accuracy of {1:.3g}".format(val_loss,val_accuracy))
+            val_accuracies.append(val_accuracy)
+
+            if epoch % 5 == 0:
+                if val_accuracy < last_accuracy:
+                    # we're getting worse, stop early!
+                    print("Stopping early!")
+                    break
+
+                last_accuracy = val_accuracy
+
+        plt.plot(train_accuracies, 'b-', label="Training")
+        plt.plot(val_accuracies, 'r-', label="Validation")
+        plt.grid(True)
+        plt.title('Accuracies')
+        plt.xlabel('epoch')
+        plt.ylabel('accuracy')
+        plt.legend(loc='best')
+        plt.show()
+
+        print()
+        print("Training accuracy of {0:.3g}".format(train_accuracies[-1]))
+        print("Validation accuracy of {0:.3g}".format(val_accuracies[-1]))
 
 class TfPipeline:
     def __init__(self, model_func):
@@ -58,15 +122,14 @@ class TfPipeline:
         
     def train_epoch(self, Xd, yd, batch_size=64):
         variables = [self.mean_loss, self.correct_prediction, self.accuracy, self.train_step]
-        self.__run_step(variables, Xd, yd, True, batch_size)
+        return self.__run_step(variables, Xd, yd, True, batch_size)
 
     def validate(self, Xd, yd, batch_size=64):
         variables = [self.mean_loss, self.correct_prediction, self.accuracy]
-        self.__run_step(variables, Xd, yd, False, batch_size)
+        return self.__run_step(variables, Xd, yd, False, batch_size)
 
     def __run_step(self, variables, Xd, yd, is_training, batch_size=64):
         correct = 0
-        accuracies = []
         losses = []
 
         for indices in minibatch_indices(Xd.shape[0], batch_size):
@@ -80,6 +143,5 @@ class TfPipeline:
             correct += np.sum(corr)
 
         total_correct = correct/Xd.shape[0]
-        accuracies.append(total_correct)
         total_loss = np.sum(losses)/Xd.shape[0]
-        print("Overall loss = {0:.3g} and accuracy of {1:.3g}".format(total_loss,total_correct))
+        return loss, total_correct

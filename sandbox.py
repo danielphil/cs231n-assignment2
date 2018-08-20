@@ -3,6 +3,11 @@ import tf_pipeline
 import numpy as np
 import tensorflow as tf
 
+import sys
+
+
+#%matplotlib inline
+
 from cs231n.data_utils import load_CIFAR10
 
 def get_CIFAR10_data(num_training=49000, num_validation=1000, num_test=10000):
@@ -65,13 +70,12 @@ def sandbox_model(X,y,is_training, filter_size=2):
 
     return y_out
 
-pipeline = tf_pipeline.TfPipeline(sandbox_model)
-for epoch in range(10):
-    print("Training Epoch {0}:".format(epoch + 1), end='')
-    pipeline.train_epoch(X_train, y_train)
+#tf_pipeline.train_and_plot(sandbox_model, X_train, y_train, X_val, y_val)
 
-    print("Validating Epoch {0}:".format(epoch + 1), end='')
-    pipeline.validate(X_val, y_val)
-
-#with tf_pipeline.TfPipeline(sandbox_model) as pipeline:
-#    pipeline.run(X_train, y_train, X_val, y_val)
+options = {
+    "param_a": [1, 4, 8],
+    "param_d": [True, False],
+    "param_c": ["tuesday", "friday", "noday!"]
+}
+for option in tf_pipeline.random_search_params(options, 20):
+    print(option)
